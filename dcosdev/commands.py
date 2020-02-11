@@ -132,7 +132,7 @@ def up():
     artifacts = helper.collect_artifacts()
     print(">>> INFO: uploading "+str(artifacts))
     helper.upload_minio(artifacts)
-    os.remove('dist/'+package_name()+'-repo.json')
+    os.remove('dist/'+package_name+'-repo.json')
     print('\nafter 1st up: dcos package repo add '+package_name+'-repo --index=0 http://minio.marathon.l4lb.thisdcos.directory:9000/artifacts/'+package_name+'/'+package_name+'-repo.json')
     print('\ndcos package install '+package_name+' --yes')
     print('\ndcos package uninstall '+package_name)

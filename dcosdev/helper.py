@@ -44,7 +44,6 @@ def _read_config_values(artifacts_url):
             config_values = yaml.safe_load(f.read()).get("values", dict())
     return {**config_values, **global_values}
 
-
 def _prerender_file(config_values, filename):
     with open(filename) as f:
         data = f.read()
