@@ -6,6 +6,9 @@ from minio.error import ResponseError
 import docker, requests
 import boto3
 import yaml
+import stat
+import subprocess
+from urllib3 import PoolManager
 
 
 def package_name():
@@ -105,7 +108,9 @@ def upload_minio(artifacts):
     minio_host = os.environ['MINIO_HOST']
     access_key = os.environ.get("MINIO_ACCESS_KEY", "minio")
     secret_key = os.environ.get("MINIO_SECRET_KEY", "minio123")
-    minioClient = Minio(minio_host, access_key=access_key, secret_key=secret_key, secure=False)
+    secure = os.environ.get("MINIO_SECURE", "false").lower() == "true"
+    pool = PoolManager(cert_reqs='CERT_NONE')
+    minioClient = Minio(minio_host, access_key=access_key, secret_key=secret_key, secure=secure, http_client=pool)
 
     for a in artifacts:
         try:
@@ -153,3 +158,28 @@ def write_universe_files(release_version, artifacts_url, universe_path, force, i
     with open(path+'/package.json', 'w') as f:
         f.write(package)
         
+
+def download_registry_cli():
+    cli_urls = {
+        "linux": "https://downloads.mesosphere.io/package-registry/binaries/cli/linux/x86-64/latest/dcos-registry-linux",
+        "darwin": "https://downloads.mesosphere.io/package-registry/binaries/cli/darwin/x86-64/latest/dcos-registry-darwin"
+    }
+    target_filename = "dcos-registry"
+
+    if sys.platform not in cli_urls:
+        print("Your operating system is currently not supported for building bundle files. Please use either linux or Mac OS")
+        sys.exit(1)
+
+    response = requests.get(cli_urls[sys.platform], stream=True)
+    if response.status_code == 200:
+        with open(target_filename, 'wb') as target_file:
+            response.raw.decode_content = True
+            shutil.copyfileobj(response.raw, target_file)
+
+    st = os.stat(target_filename)
+    os.chmod(target_filename, st.st_mode | stat.S_IEXEC)
+
+
+def run_bundle_build(exe, files_dir, target_dir):
+    subprocess.run(" ".join([exe, "registry", "migrate", "--package-directory="+files_dir, "--output-directory="+target_dir]), shell=True, check=True)
+    subprocess.run(" ".join([exe, "registry", "build", "--build-definition-file=$(ls bundle/*.json)", "--output-directory="+target_dir]), shell=True, check=True)

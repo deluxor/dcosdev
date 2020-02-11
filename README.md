@@ -34,7 +34,7 @@ Create a bucket named *artifacts* and set its policy to *Read*.
 
 ## install
 
-**Note:** Currently `dcosdev` has only been tested with python2 !
+**Note:** `dcosdev` only runs with Python3 !
 
 Install the `dcosdev` cli using the following command, or if you don't want to mess around with the python environment on your local machine then build a docker image as described in the next step.
 ```

@@ -1,6 +1,7 @@
 from collections import OrderedDict
 import json
 import os
+import shutil
 import click
 import base64
 import docker, requests
@@ -208,7 +209,6 @@ def release(release_version, s3_bucket, universe, force, keep):
         os.remove('dist/'+package_name+'-repo.json')
 
 
-
 @build.command("dcos")
 @click.argument("target-dir")
 def build_dcos(target_dir):
@@ -221,3 +221,39 @@ def build_dcos(target_dir):
     helper.copy_artifacts(artifacts, target_dir)
     helper.write_universe_files("", artifacts_url, target_dir, force=False, is_complete_path=True)
     os.remove('dist/'+package_name+'-repo.json')
+
+
+@build.command("bundle")
+@click.option("--target-dir", help="Directory to build the bundle file into. Default is 'bundle'")
+@click.option("--clean", is_flag=True, help="Will delete target-dir before building")
+@click.option("--use-dcos-cli", is_flag=True, help="Use the locally installed dcos cli (registry package needs to be installed) instead of downloading the standalone binary")
+def build_bundle(target_dir, clean, use_dcos_cli):
+    if not target_dir:
+        target_dir = "bundle"
+    artifacts_url = "bundle-files"
+    if use_dcos_cli:
+        registry_exe = "dcos"
+    else:
+        registry_exe = "./dcos-registry"
+
+    if clean and os.path.exists(target_dir):
+        shutil.rmtree(target_dir)
+    if os.path.exists(artifacts_url):
+        shutil.rmtree(artifacts_url)
+    os.makedirs(artifacts_url, exist_ok=True)
+    os.makedirs(target_dir, exist_ok=True)
+
+    package_name = helper.package_name()
+    package_version = helper.package_version()
+    helper.build_repo(package_version, int(0), artifacts_url)
+    artifacts = helper.collect_artifacts()
+    helper.copy_artifacts(artifacts, artifacts_url)
+    helper.write_universe_files("", artifacts_url, artifacts_url, force=False, is_complete_path=True)
+    os.remove('dist/'+package_name+'-repo.json')
+
+    if not use_dcos_cli:
+        helper.download_registry_cli()
+    helper.run_bundle_build(registry_exe, artifacts_url, target_dir)
+    if not use_dcos_cli:
+        os.remove(registry_exe)
+    shutil.rmtree(artifacts_url)
