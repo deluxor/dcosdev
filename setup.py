@@ -4,14 +4,14 @@
 from setuptools import find_packages, setup
 
 REQUIRES = [
-    'yml',
-    'docopt==0.6.2',
-    'docker',
-    'minio',
-    'requests',
-    'boto3'
+    'docker==4.2.0',
+    'minio==5.0.8',
+    'requests==2.23.0',
+    'boto3==1.12.34',
+    "click==7.1.1",
+    "pyyaml==5.3.1",
 ]
-print(find_packages())
+
 setup(name='dcosdev',
       version='0.0.1',
       description='short description',
